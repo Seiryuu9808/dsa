@@ -15,6 +15,13 @@ def time_it(func, data):
     return (end - start) * 1000
 
 
+def time_it_return(func, data):
+    start = time.perf_counter()
+    out = func(data)
+    end = time.perf_counter()
+    return (end - start) * 1000, out
+
+
 # Đọc file từ dataset
 def read_one_file(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -65,22 +72,35 @@ def benchmark():
 
     for name, data in sets:
         results["dataset"].append(name)
-        arr = data.tolist()
         row = name.ljust(14)
 
-        t = time_it(merge_sort, arr.copy())
+        expected = np.sort(data)
+
+        arr_merge = data.copy()
+        t, out_merge = time_it_return(merge_sort, arr_merge)
+        if not np.array_equal(out_merge, expected):
+            raise AssertionError(f"Merge sort failed on dataset {name}")
         results["merge_sort"].append(t)
         row += f"{t:>14.2f}"
 
-        t = time_it(quick_sort, arr.copy())
+        arr_quick = data.copy()
+        t = time_it(quick_sort, arr_quick)
+        if not np.array_equal(arr_quick, expected):
+            raise AssertionError(f"Quick sort failed on dataset {name}")
         results["quick_sort"].append(t)
         row += f"{t:>14.2f}"
 
-        t = time_it(heap_sort, arr.copy())
+        arr_heap = data.copy()
+        t = time_it(heap_sort, arr_heap)
+        if not np.array_equal(arr_heap, expected):
+            raise AssertionError(f"Heap sort failed on dataset {name}")
         results["heap_sort"].append(t)
         row += f"{t:>12.2f}"
 
-        t = time_it(np.sort, data)
+        arr_np = data.copy()
+        t = time_it(lambda arr: arr.sort(), arr_np)
+        if not np.array_equal(arr_np, expected):
+            raise AssertionError(f"Numpy sort failed on dataset {name}")
         results["numpy_sort"].append(t)
         row += f"{t:>14.2f}"
 
@@ -93,21 +113,20 @@ def benchmark():
 def plot_results(results):
     labels = results["dataset"]
     x = np.arange(len(labels))
-    w = 0.2
 
     plt.figure(figsize=(12, 6))
-    plt.bar(x - 1.5 * w, results["merge_sort"], width=w, label="merge_sort")
-    plt.bar(x - 0.5 * w, results["quick_sort"], width=w, label="quick_sort")
-    plt.bar(x + 0.5 * w, results["heap_sort"], width=w, label="heap_sort")
-    plt.bar(x + 1.5 * w, results["numpy_sort"], width=w, label="numpy_sort")
+    plt.plot(x, results["merge_sort"], marker="o", label="merge_sort")
+    plt.plot(x, results["quick_sort"], marker="o", label="quick_sort")
+    plt.plot(x, results["heap_sort"], marker="o", label="heap_sort")
+    plt.plot(x, results["numpy_sort"], marker="o", label="numpy_sort")
 
     plt.xticks(x, labels, rotation=30, ha="right")
     plt.xlabel("Bộ dữ liệu")
     plt.ylabel("Thời gian thực hiện (ms)")
     plt.title("Kết quả thử nghiệm trên bộ dữ liệu")
     plt.grid(True, axis="y", linestyle="--", alpha=0.4)
-    plt.legend()
-    plt.tight_layout()
+    plt.legend(loc="center left", bbox_to_anchor=(1.02, 0.5))
+    plt.tight_layout(rect=(0, 0, 0.82, 1))
     plt.show()
 
 
